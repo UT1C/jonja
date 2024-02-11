@@ -1,17 +1,16 @@
 from typing import Mapping, TypeVar, Callable, Awaitable, TypeAlias, Any, overload
 from os import PathLike
 from pathlib import Path
-import importlib
 import functools
 import itertools
-import asyncio
 import re
 
 from cache import AsyncLRU, AsyncTTL
 from aiofile import async_open
 from yamt import IterativeRandomizer
 import jinja2 as j2
-import oyaml as yaml
+
+from .tools import ObjRenderer
 
 ReadedResult: TypeAlias = tuple[j2.Template, j2.Template | None] | tuple[str, str | None]
 T = TypeVar("T")
@@ -28,13 +27,13 @@ ConstructorT = TypeVar(
 
 
 class JonjaEnv(j2.Environment):
-    templates_path: Path | None
+    templates_path: Path
     obj_decl_separator: re.Pattern | str
 
     def __init__(
         self,
-        templates_path: PathLike | None,
-        *args,
+        templates_path: PathLike,
+        *,
         globals: Mapping[str, Any] | None = None,
         filters: Mapping[str, Callable] | None = None,
         reader_wrap: Callable[[ReaderT], ReaderT] | None = None,
@@ -52,19 +51,19 @@ class JonjaEnv(j2.Environment):
 
         assert not kwargs.get("enable_async"), "async only"
         kwargs["enable_async"] = True
+        kwargs["auto_reload"] = False
+        assert kwargs.get("loader") is None, "no loader allowed when path provided"
+        kwargs["loader"] = None
 
-        if templates_path is not None:
-            assert kwargs.get("loader") is None, "no loader allowed when path provided"
-            self.templates_path = Path(templates_path)
+        self.templates_path = Path(templates_path)
+        self.obj_decl_separator = obj_decl_separator
 
         self.search_file = search_file_wrap(self.search_file)
         self.random_paths = search_file_wrap(self.random_paths)
         self.read_file = reader_wrap(self.read_file)
         self.construct_objs = construct_objs_wrap(self.construct_objs)
 
-        self.obj_decl_separator = obj_decl_separator
-
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
         if globals is not None:
             self.globals.update(globals)
@@ -72,7 +71,6 @@ class JonjaEnv(j2.Environment):
             self.filters.update(filters)
 
     async def search_file(self, name: str) -> tuple[Path, ...]:
-        assert self.templates_path is not None
         return tuple(
             itertools.chain(
                 *(self.templates_path.glob(f"{name}.{ext}") for ext in ("txt", "j2")),
@@ -95,7 +93,7 @@ class JonjaEnv(j2.Environment):
             body = "\n".join(body)
             obj_decl = await afp.read()
 
-        if path.suffix == ".j2":
+        if path.suffix != ".txt":
             body = self.from_string(body)
             if obj_decl is not None:
                 obj_decl = self.from_string(obj_decl)
@@ -113,12 +111,6 @@ class JonjaEnv(j2.Environment):
                 raise AssertionError()
 
     async def render(self, name: str, **kwargs) -> tuple[str, Any]:
-        if self.templates_path is None:
-            return (
-                await self.get_template(f"{name}.j2").render_async(**kwargs),
-                None
-            )
-
         paths = await self.search_file(name)
         match len(paths):
             case 0:
@@ -184,62 +176,3 @@ class JonjaEnv(j2.Environment):
             name = value.__name__
         self.globals[name] = value
         return value
-
-
-class ObjRenderer:
-    objs_spec: dict | list
-    env: j2.Environment
-
-    def __init__(self, obj_decl: str, env: j2.Environment) -> None:
-        self.objs_spec = yaml.load(obj_decl.strip(), yaml.FullLoader)
-        self.env = env
-
-    async def construct(self) -> Any:
-        return await self._construct(self.objs_spec)
-
-    async def _construct(self, spec: dict | list) -> Any:
-        match spec:
-            case dict():
-                if "$cls" in spec:
-                    return await self.make_obj(spec)
-
-                else:
-                    tasks = list()
-                    for v in spec.values():
-                        tasks.append(self._construct(v))
-                    results = await asyncio.gather(*tasks)
-                    return dict(zip(spec, results))
-
-            case list():
-                return tuple(await asyncio.gather(*map(self._construct, spec)))
-
-            case _:
-                return spec
-
-    async def make_obj(self, spec: dict[str, Any]) -> Any:
-        spec = spec.copy()
-        cls_name: str = spec.pop("$cls")
-
-        cls = self.env.globals.get(cls_name)
-        if cls is None:
-            module, cls = cls_name.split(":")
-            module = importlib.import_module(module)
-            cls = getattr(module, cls)
-
-        args = spec.pop("$args", None)
-        if args is None:
-            args = tuple()
-        else:
-            args = await self._construct(args)
-
-        kwargs = spec.pop("$kwargs", None)
-        if kwargs is None:
-            kwargs = dict()
-        else:
-            kwargs = await self._construct(kwargs)
-
-        instance = cls(*args, **kwargs)
-        for k, v in spec:
-            setattr(instance, k, v)
-
-        return instance
