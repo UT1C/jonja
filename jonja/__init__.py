@@ -35,14 +35,21 @@ class JonjaEnv(j2.Environment):
         self,
         templates_path: PathLike | None,
         *args,
-        globals: Mapping[str, Any] = dict(),
-        filters: Mapping[str, Callable] = dict(),
-        reader_wrap: Callable[[ReaderT], ReaderT] = AsyncLRU(maxsize=None),
-        search_file_wrap: Callable[[SearchFileT], SearchFileT] = AsyncLRU(maxsize=None),
-        construct_objs_wrap: Callable[[ConstructorT], ConstructorT] = AsyncTTL(300, maxsize=16),
-        obj_decl_separator: re.Pattern | str = "#!#",
+        globals: Mapping[str, Any] | None = None,
+        filters: Mapping[str, Callable] | None = None,
+        reader_wrap: Callable[[ReaderT], ReaderT] | None = None,
+        search_file_wrap: Callable[[SearchFileT], SearchFileT] | None = None,
+        construct_objs_wrap: Callable[[ConstructorT], ConstructorT] | None = None,
+        obj_decl_separator: re.Pattern | str = "*#!#*",
         **kwargs
     ) -> None:
+        if reader_wrap is None:
+            reader_wrap = AsyncLRU(maxsize=None)
+        if search_file_wrap is None:
+            search_file_wrap = AsyncLRU(maxsize=None)
+        if construct_objs_wrap is None:
+            construct_objs_wrap = AsyncTTL(300, maxsize=16)
+
         assert not kwargs.get("enable_async"), "async only"
         kwargs["enable_async"] = True
 
@@ -58,8 +65,11 @@ class JonjaEnv(j2.Environment):
         self.obj_decl_separator = obj_decl_separator
 
         super().__init__(*args, **kwargs)
-        self.globals.update(globals)
-        self.filters.update(filters)
+
+        if globals is not None:
+            self.globals.update(globals)
+        if filters is not None:
+            self.filters.update(filters)
 
     async def search_file(self, name: str) -> tuple[Path, ...]:
         assert self.templates_path is not None
@@ -76,15 +86,16 @@ class JonjaEnv(j2.Environment):
 
     async def read_file(self, path: Path) -> ReadedResult:
         body = list()
-        async with async_open(path) as afp:
-            async for line in afp:
+        async with async_open(path, encoding="UTF-8") as afp:
+            while (line := await afp.readline()):
+                line = line.rstrip("\r\n")
                 if self._match_separator(line):
                     break
                 body.append(line)
             body = "\n".join(body)
-            obj_decl = await afp.read() or None
+            obj_decl = await afp.read()
 
-        if path.suffix == "j2":
+        if path.suffix == ".j2":
             body = self.from_string(body)
             if obj_decl is not None:
                 obj_decl = self.from_string(obj_decl)
@@ -180,14 +191,14 @@ class ObjRenderer:
     env: j2.Environment
 
     def __init__(self, obj_decl: str, env: j2.Environment) -> None:
-        self.objs_spec = yaml.load(obj_decl, yaml.FullLoader)
+        self.objs_spec = yaml.load(obj_decl.strip(), yaml.FullLoader)
         self.env = env
 
     async def construct(self) -> Any:
         return await self._construct(self.objs_spec)
 
     async def _construct(self, spec: dict | list) -> Any:
-        match self.objs_spec:
+        match spec:
             case dict():
                 if "$cls" in spec:
                     return await self.make_obj(spec)
@@ -211,9 +222,9 @@ class ObjRenderer:
 
         cls = self.env.globals.get(cls_name)
         if cls is None:
-            i = cls_name.rfind(".")
-            module = importlib.import_module(cls_name[:i])
-            cls = getattr(module, cls_name[i + 1:])
+            module, cls = cls_name.split(":")
+            module = importlib.import_module(module)
+            cls = getattr(module, cls)
 
         args = spec.pop("$args", None)
         if args is None:
