@@ -157,3 +157,6 @@ cython_debug/
 # Custom
 /test.py
 /stubs
+
+# Poetry
+/poetry.lock

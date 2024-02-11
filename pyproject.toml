@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "jonja"
 version = "0.0.1"
-description = "jinja-based texts and objects render"
-authors = ["lightmanLP <liteman1000@gmail.com>", "mikk357 <mikk357@yandex.com>"]
+description = "Simple jinja-based texts and objects render"
+authors = ["lightmanLP <liteman1000@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 keywords = ["jinja", "template", "text"]
@@ -12,12 +12,11 @@ keywords = ["jinja", "template", "text"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-aiofile = "^3.8.7"
-async-cache = "^1.1.1"
-jinja2 = "^3.1.2"
+jinja2 = "^3.1.3"
 yamt = "^0.1.3.1"
-pyyaml = "^6.0"
-typing-extensions = "^4.7.0"
+aiofile = "^3.8.8"
+async-cache = "^1.1.1"
+oyaml = "^1.0"
 
 
 [tool.poetry.group.dev.dependencies]
