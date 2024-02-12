@@ -24,7 +24,7 @@ world:
 ```py
 from pathlib import Path
 from jonja import JonjaEnv
-env = JonjaEnv(  Path.cwd() / "static" / "templates")
+env = JonjaEnv(Path.cwd() / "static" / "templates")
 ```
 3. Render
 ```py
