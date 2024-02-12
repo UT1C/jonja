@@ -9,3 +9,24 @@ Jinja-based texts and objects render.
 ```
 pip install jonja
 ```
+
+## Usage
+1. Make template
+`hello.j2`
+```j2
+Hello, {{ username }}!
+*#!#*
+world:
+  $cls: "types:SimpleNamespace"
+  $kwargs: {name: earth, size: {{ world_size }} }
+```
+2. Make env
+```py
+from pathlib import Path
+from jonja import JonjaEnv
+env = JonjaEnv(  Path.cwd() / "static" / "templates")
+```
+3. Render
+```py
+text, objs = await env.render("hello", username="mikk", world_size=10_000)
+```
