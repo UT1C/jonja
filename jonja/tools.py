@@ -51,15 +51,7 @@ class ObjRenderer:
             args = tuple()
         else:
             args = await self._construct(args)
-
-        kwargs = spec.pop("$kwargs", None)
-        if kwargs is None:
-            kwargs = dict()
-        else:
-            kwargs = await self._construct(kwargs)
+        kwargs = await self._construct(spec)
 
         instance = cls(*args, **kwargs)
-        for k, v in spec:
-            setattr(instance, k, v)
-
         return instance
