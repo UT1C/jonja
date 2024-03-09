@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jonja"
-version = "0.0.2"
+version = "0.1.0"
 description = "Simple jinja-based texts and objects render"
 authors = ["lightmanLP <liteman1000@gmail.com>"]
 license = "MIT"
