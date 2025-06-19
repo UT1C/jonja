@@ -5,9 +5,9 @@ import functools
 import itertools
 import re
 
-from cache import Cached, LRU, TTL
-from aiofile import async_open
 import jinja2 as j2
+from aiofile import async_open
+from utic_cache import Cached, LRU, TTL
 from yamt import IterativeRandomizer
 
 from .tools import ObjRenderer
