@@ -7,7 +7,7 @@ import re
 
 import jinja2 as j2
 from aiofile import async_open
-from utic_cache import Cached, LRU, TTL
+from utic_cache import Cached, TTL
 from yamt import IterativeRandomizer
 
 from .tools import ObjRenderer
@@ -43,9 +43,9 @@ class JonjaEnv(j2.Environment):
         **kwargs
     ) -> None:
         if reader_wrap is None:
-            reader_wrap = Cached(LRU(None))
+            reader_wrap = Cached(dict())
         if search_file_wrap is None:
-            search_file_wrap = Cached(LRU(None))
+            search_file_wrap = Cached(dict())
         if construct_objs_wrap is None:
             construct_objs_wrap = Cached(TTL(300, maxsize=16))
 
