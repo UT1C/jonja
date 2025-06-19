@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jonja"
-version = "0.1.1"
+version = "0.1.2"
 description = "Simple jinja-based texts and objects render"
 authors = ["lightmanLP <liteman1000@gmail.com>"]
 license = "MIT"
@@ -13,9 +13,9 @@ keywords = ["jinja", "template", "text"]
 [tool.poetry.dependencies]
 python = "^3.10"
 jinja2 = "^3.1.3"
-yamt = "^0.1.4.5"
+yamt = "^1.0.0"
 aiofile = "^3.8.8"
-async-cache = "^1.1.1"
+async-cache = {git = "https://github.com/UT1C/async-cache"}
 oyaml = "^1.0"
 
 

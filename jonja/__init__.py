@@ -5,10 +5,10 @@ import functools
 import itertools
 import re
 
-from cache import AsyncLRU, AsyncTTL
+from cache import Cached, LRU, TTL
 from aiofile import async_open
-from yamt import IterativeRandomizer
 import jinja2 as j2
+from yamt import IterativeRandomizer
 
 from .tools import ObjRenderer
 
@@ -43,11 +43,11 @@ class JonjaEnv(j2.Environment):
         **kwargs
     ) -> None:
         if reader_wrap is None:
-            reader_wrap = AsyncLRU(maxsize=None)
+            reader_wrap = Cached(LRU(None))
         if search_file_wrap is None:
-            search_file_wrap = AsyncLRU(maxsize=None)
+            search_file_wrap = Cached(LRU(None))
         if construct_objs_wrap is None:
-            construct_objs_wrap = AsyncTTL(300, maxsize=16)
+            construct_objs_wrap = Cached(TTL(300, maxsize=16))
 
         assert not kwargs.get("enable_async"), "async only"
         kwargs["enable_async"] = True
