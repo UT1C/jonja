@@ -136,7 +136,7 @@ class JonjaEnv(j2.Environment):
         return await ObjRenderer(obj_decl, self).construct()
 
     @overload
-    def filter(self, func: FuncT, name: str) -> FuncT:
+    def filter(self, func: FuncT, name: str | None = None) -> FuncT:
         ...
 
     @overload
@@ -157,7 +157,7 @@ class JonjaEnv(j2.Environment):
         return value
 
     @overload
-    def var(self, value: T, name: str) -> T:
+    def var(self, value: T, name: str | None = None) -> T:
         ...
 
     @overload

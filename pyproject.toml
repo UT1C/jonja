@@ -1,6 +1,6 @@
 [project]
 name = "jonja"
-version = "0.1.4"
+version = "0.1.5"
 description = "Simple jinja-based texts and objects render"
 authors = [
     {name = "lightmanLP",email = "liteman1000@gmail.com"}
