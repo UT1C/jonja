@@ -3,7 +3,7 @@ import importlib
 import asyncio
 
 import jinja2 as j2
-import oyaml as yaml
+import ruamel.yaml as ryaml
 
 
 class ObjRenderer:
@@ -11,7 +11,8 @@ class ObjRenderer:
     env: j2.Environment
 
     def __init__(self, obj_decl: str, env: j2.Environment) -> None:
-        self.objs_spec = yaml.load(obj_decl.strip(), yaml.FullLoader)
+        yaml = ryaml.YAML()
+        self.objs_spec = yaml.load(obj_decl.strip())
         self.env = env
 
     async def construct(self) -> Any:
