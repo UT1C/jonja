@@ -1,7 +1,6 @@
-from typing import cast
 from collections import deque
-from collections.abc import Callable, Sequence, Hashable, Iterable
-import functools
+from collections.abc import Callable, Sequence
+from contextvars import ContextVar
 
 from jinja2.ext import Extension
 from jinja2.parser import Parser
@@ -15,6 +14,7 @@ from .structures import JonjaContext
 from .di import DependencyInjector as DI
 
 MISSING = object()
+rendered_objects = ContextVar("rendered_objects", default=None)
 
 
 class JonjaExt(Extension):
@@ -70,8 +70,13 @@ class JonjaExt(Extension):
             used_vars=used_vars,
             cache_strategy=cache_strategy
         )
+        obj = self.obj_render.get(render_ctx)
 
-        objs = self.obj_render.get(render_ctx)
+        storage = rendered_objects.get()
+        if storage is None:
+            storage = list()
+            rendered_objects.set(storage)
+        storage.append(obj)
 
         return ""
 
