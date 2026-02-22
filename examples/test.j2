@@ -1,5 +1,5 @@
 Hello {{ x }}!
-{%- jobj %}
+{%- jobj cached schema %}
 - 1
 - [a,b,c]
 - v: 1
@@ -15,6 +15,7 @@ Hello {{ x }}!
     da:
       net: 1
       pytoh:
-      - $cls: "yamt:AsyncEventManager"
-        loop: null
+      - $cls: "collections:deque"
+        maxlen: 8
+  z: "{{ z.data }}"
 {% endjobj %}

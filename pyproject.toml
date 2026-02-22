@@ -28,4 +28,5 @@ repository = "https://github.com/UT1C/jonja"
 dev = [
     "flake8>=7.3.0",
     "ruamel-yaml>=0.19.1",
+    "typing-extensions>=4.15.0",
 ]
