@@ -36,5 +36,4 @@ text, objs = await env.render("hello", username="mikk", world_size=10_000)
 ```
 
 ## TODO
-- [ ] make deepcopy of cached generated objects (maybe controlled by option on both env and render side)
 - [ ] make di socially independent (allow multiple instances of ext with different di container instances)
